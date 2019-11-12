@@ -1,4 +1,6 @@
+#ifndef PSPAT
 #define PSPAT
+#endif
 
 #include "pspat.h"
 
@@ -108,7 +110,7 @@ pspat_client_handler(struct mbuf *mbf, struct ip_fw_args *fwa) {
 	cpu = curthread->td_oncpu;
 	mbf->sender_cpu = cpu;
 	mbf->fwa = fwa;
-	mbf->ifp = fwa->ifp;
+	mbf->ifp = fwa->oif;
 
 	pq = arb->queues + cpu;
 	if (pspat_enq_mbuf(pq, mbf)) {

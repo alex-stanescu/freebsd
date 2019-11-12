@@ -1,4 +1,6 @@
+#ifndef PSPAT
 #define PSPAT
+#endif
 
 #include "pspat_dispatcher.h"
 #include "mailbox.h"

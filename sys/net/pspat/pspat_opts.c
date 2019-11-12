@@ -51,7 +51,7 @@ static int
 pspat_enable_oid_handler(struct sysctl_oid *oidp, void *arg1, intmax_t arg2, struct sysctl_req *req) {
 	int ret = orig_oid_handler(oidp, arg1, arg2, req);
 
-	if(ret || !pspat_enable || pspat_info == NULL) {
+	if(ret || !pspat_enable || pspat == NULL) {
 		return ret;
 	}
 
@@ -64,7 +64,7 @@ static int
 pspat_xmit_mode_oid_handler(struct sysctl_oid *oidp, void *arg1, intmax_t arg2, struct sysctl_req *req) {
 	int ret = orig_oid_handler(oidp, arg1, arg2, req);
 
-	if(ret || !pspat_enable || pspat_info == NULL) {
+	if(ret || !pspat_enable || pspat == NULL) {
 		return ret;
 	}
 

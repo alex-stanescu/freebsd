@@ -51,7 +51,7 @@ struct pspat_arbiter {
  */
 
 /* Global struct containing all of the information about the data structure */
-extern struct pspat_system *pspat_info;
+extern struct pspat_system *pspat;
 
 /* Read-write lock for `pspat_info` */
 extern struct rwlock pspat_rwlock;
