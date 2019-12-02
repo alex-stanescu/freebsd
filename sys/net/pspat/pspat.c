@@ -221,6 +221,9 @@ pspat_create(void)
 	}
 
 	pspat_ptr->arbiter.fs = NULL;
+	
+	/* Setup global pspat pointer */
+	pspat = pspat_ptr;
 
 	ret = kthread_add(arbiter_worker_func, pspat_ptr, NULL, &pspat_ptr->arb_thread, 0, 0, "pspat_arbiter_thread");
 	if (ret) {
@@ -335,6 +338,7 @@ static moduledata_t pspat_data = {
 };
 
 DECLARE_MODULE(pspat, pspat_data, SI_SUB_DRIVERS, SI_ORDER_MIDDLE);
+MODULE_DEPEND(pspat, dummynet, 3, 3, 3);
 MODULE_VERSION(pspat, 1);
 
 /* Called on thread_exit() to clean-up PSPAT mailbox, if any. */

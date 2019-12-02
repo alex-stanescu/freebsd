@@ -84,6 +84,7 @@ pspat_enq_mbuf(struct pspat_queue *pq, struct mbuf *mbf) {
 
 int
 pspat_client_handler(struct mbuf *mbf, struct ip_fw_args *fwa) {
+    printf("=====SENDING BUF=====\n");
 	static struct mbuf *ins_mbf;
 	/* Avoid duplicate intake of the same packet */
 	if (mbf == ins_mbf) {

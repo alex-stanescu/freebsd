@@ -50,13 +50,15 @@ static int pspat_xmit_mode_oid_handler(struct sysctl_oid *oidp, void *arg1, intm
 static int
 pspat_enable_oid_handler(struct sysctl_oid *oidp, void *arg1, intmax_t arg2, struct sysctl_req *req) {
 	int ret = orig_oid_handler(oidp, arg1, arg2, req);
-
+	printf("Enable OID handler called %p\n", pspat);
 	if(ret || !pspat_enable || pspat == NULL) {
 		return ret;
 	}
 
+	printf("Resuming kthreads\n");
 	kthread_resume(pspat->arb_thread);
 	kthread_resume(pspat->dispatcher_thread);
+	printf("Resumed!\n");
 	return 0;
 }
 
@@ -68,7 +70,9 @@ pspat_xmit_mode_oid_handler(struct sysctl_oid *oidp, void *arg1, intmax_t arg2, 
 		return ret;
 	}
 
+	printf("Resuming kthreads\n");
 	kthread_resume(pspat->dispatcher_thread);
+	printf("Resumed!\n");
 	return 0;
 }
 
@@ -112,7 +116,7 @@ pspat_sysctl_init(void)
 	oidp = SYSCTL_ADD_U64(&clist, SYSCTL_CHILDREN(pspat_oid), OID_AUTO, "rounds", CTLFLAG_RD,
 			      pspat_rounds, 0, "Rounds under PSPAT");
 
-	oidp = SYSCTL_ADD_BOOL(&clist, SYSCTL_CHILDREN(pspat_oid), OID_AUTO, "debug xmit", CTLFLAG_RW,
+	oidp = SYSCTL_ADD_BOOL(&clist, SYSCTL_CHILDREN(pspat_oid), OID_AUTO, "debug_xmit", CTLFLAG_RW,
 			       &pspat_debug_xmit, false, "debug_xmit under pspat");
 
 	oidp = SYSCTL_ADD_U64(&clist, SYSCTL_CHILDREN(pspat_oid), OID_AUTO, "arb_interval_ns", CTLFLAG_RW,

@@ -229,7 +229,8 @@ dispatch(struct mbuf *m) {
 	 * it doesn't. Hence it may be preferred to use printfs and comment
 	 * out the following statement to test the rest of the code well */
 
-	dummynet_send(m);
+	//dummynet_send(m);
+	printf("Dispatching from arbiter: %p\n", m);
 }
 
 static void
