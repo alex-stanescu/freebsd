@@ -154,7 +154,7 @@ static inline bool pspat_mb_empty(struct pspat_mailbox *m) {
 static inline void *pspat_mb_extract(struct pspat_mailbox *m) {
 	void *v = m->q[m->cons_read & m->entry_mask];
 	if (v != NULL) {
-		printf("Extracting %p from mailbox at %lu\n", v, m->prod_write);
+		printf("Extracting %p from mailbox at %lu\n", v, m->cons_read);
 		m->cons_read ++;
 	}
 

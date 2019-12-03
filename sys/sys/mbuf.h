@@ -301,10 +301,6 @@ struct mbuf {
 		};
 		char	m_dat[0];			/* !M_PKTHDR, !M_EXT */
 	};
-
-  struct ip_fw_args *fwa;
-  struct ifnet *ifp;
-  int sender_cpu;
 };
 
 struct ktls_session;

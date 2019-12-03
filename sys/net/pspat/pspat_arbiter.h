@@ -7,6 +7,13 @@
 #include <sys/types.h>
 #include <sys/kthread.h>
 
+struct pspat_packet {
+	struct ip_fw_args 	*fwa;
+	struct ifnet 		*ifp;
+	int 				sender_cpu;
+	struct mbuf			*buf;
+};
+
 /* Per-CPU queue */
 struct pspat_queue {
 	/* Input queue (a mailbox of mailboxes). Written by clients, read by

@@ -10,6 +10,8 @@
 #include <sys/mbuf.h>
 #include <netpfil/ipfw/ip_dn_io.h>
 
+MALLOC_DECLARE(M_PSPAT);
+
 #define	NSEC_PER_SEC	1000000000L
 #define	PSPAT_ARB_STATS_LOOPS	0x1000
 
@@ -42,7 +44,7 @@ static struct pspat_mailbox *get_client_mb(struct pspat_queue *pq);
  * @arb the arbiter that we are getting the mbf from (for deleting mailboxes)
  * @pq the client queue we are getting the mbf from
  */
-static struct mbuf *get_client_mbuf(struct pspat_arbiter *arb, struct pspat_queue *pq);
+static struct pspat_packet *get_client_packet(struct pspat_arbiter *arb, struct pspat_queue *pq);
 
 /*
  * calls the mailbox prefetch on the last mailbox in the queue
@@ -142,13 +144,14 @@ get_client_mb(struct pspat_queue *pq) {
 	    }
 
     }
+	
     return m;
 }
 
-static struct mbuf *
-get_client_mbuf(struct pspat_arbiter *arb, struct pspat_queue *pq) {
+static struct pspat_packet *
+get_client_packet(struct pspat_arbiter *arb, struct pspat_queue *pq) {
 	struct pspat_mailbox *m;
-	struct mbuf *mbf;
+	struct pspat_packet *packet;
 
 retry:
 	/* First, get the current mailbox for this CPU */
@@ -158,8 +161,8 @@ retry:
 	}
 
 	/* Try to extract an mbf from the current mailbox */
-	mbf = pspat_mb_extract(m);
-	if(mbf != NULL) {
+	packet = pspat_mb_extract(m);
+	if(packet != NULL) {
 		/* Let send_ack() see this mailbox */
 		entry_init(&m->entry);
 		TAILQ_INSERT_TAIL(&pq->mb_to_clear, &m->entry, entries);
@@ -174,7 +177,7 @@ retry:
 		goto retry;
 	}
 
-	return mbf;
+	return packet;
 }
 
 static inline void
@@ -229,18 +232,19 @@ dispatch(struct mbuf *m) {
 	 * it doesn't. Hence it may be preferred to use printfs and comment
 	 * out the following statement to test the rest of the code well */
 
-	//dummynet_send(m);
 	printf("Dispatching from arbiter: %p\n", m);
+	dummynet_send(m);
 }
 
 static void
 drain_client_queue(struct pspat_arbiter *arb, struct pspat_queue *pq) {
 	struct pspat_mailbox *m = pq->arb_last_mb;
-	struct mbuf *mbf;
+	struct pspat_packet *packet;
 	int dropped = 0;
 
-	while ((mbf = get_client_mbuf(arb, pq))) {
-		m_free(mbf);
+	while ((packet = get_client_packet(arb, pq))) {
+		m_free(packet->buf);
+		free(packet, M_PSPAT);
 		dropped ++;
 	}
 
@@ -281,20 +285,25 @@ int pspat_arbiter_run(struct pspat_arbiter *arb, struct pspat_dispatcher *dispat
 	/* Bring in pending packets arrived between link_idle and now */
 	for (i = 0; i < arb->n_queues; i++) {
 		struct pspat_queue *pq = arb->queues + i;
-		struct mbuf *mbf = NULL;
+		struct pspat_packet *packet = NULL;
 		bool empty = true;
 
 		pq->arb_next = now + (pspat_arb_interval_ns << 10);
 
 		prefetch_mb(&(arb->queues[(i + 1) % arb->n_queues]));
 
-		while( (mbf = get_client_mbuf(arb, pq))) {
+		while( (packet = get_client_packet(arb, pq))) {
+			if (pspat_debug_xmit) {
+				printf("Got client mbuf %p!\n", packet);
+			}
 			/* Note : Comment the following line - 287 and uncomment line - 251,
 			 * lines 290 -  315 and lines 334 - 339 to use a scheduler instead of
 			 * sending a packet from the arbiter to the dispatcher queue
 			 * directly. */
 
-			send_to_dispatcher(arb, dispatcher, mbf);
+			struct mbuf *buf = packet->buf;
+			free(packet, M_PSPAT);
+			send_to_dispatcher(arb, dispatcher, buf);
 
 			/* Enqueue to SA here */
 			//			if (first_packet) {
@@ -306,7 +315,7 @@ int pspat_arbiter_run(struct pspat_arbiter *arb, struct pspat_dispatcher *dispat
 			 * new scheduler instance is used with dummynet.
 			 */
 
-			//				struct ip_fw_args *fwa = mbf->fwa;
+			//				struct ip_fw_args *fwa = packet->fwa;
 
 			//				int fs_id = (fwa->rule.info & IPFW_INFO_MASK) +
 			//				((fwa->rule.info & IPFW_IS_PIPE) ? 2*DN_MAX_ID : 0);
@@ -316,12 +325,12 @@ int pspat_arbiter_run(struct pspat_arbiter *arb, struct pspat_dispatcher *dispat
 			//				if (arb->fs->sched->fp->flags & DN_MULTIQUEUE)
 			//					arb->q = ipdn_q_find(arb->fs, arb->si, &(fwa->f_id));
 
-			//				arb->fs->sched->fp->enqueue(arb->si, arb->q, mbf);
+			//				arb->fs->sched->fp->enqueue(arb->si, arb->q, packet->buf);
 
 			//				first_packet = 0;
 
 			//			} else {
-			//				arb->fs->sched->fp->enqueue(arb->si, arb->q, mbf);
+			//				arb->fs->sched->fp->enqueue(arb->si, arb->q, packet->buf);
 			//			}
 
 			empty = false;
@@ -354,12 +363,12 @@ int pspat_arbiter_run(struct pspat_arbiter *arb, struct pspat_dispatcher *dispat
 		unsigned int ndeq = 0;
 
 		struct pspat_mailbox *m = dispatcher->mb;
-		struct mbuf *mbf;
+		struct mbuf *mbuf;
 
 		while (link_idle < now && ndeq < pspat_arb_batch) {
-			if ((mbf = pspat_mb_extract(m)) != NULL) {
-				link_idle += picos_per_byte * mbf->m_len;
-				dispatch(mbf);
+			if ((mbuf = pspat_mb_extract(m)) != NULL) {
+				link_idle += picos_per_byte * mbuf->m_len;
+				dispatch(mbuf);
 				ndeq ++;
 			} else {
 				link_idle = now;
@@ -408,10 +417,11 @@ void pspat_arbiter_shutdown(struct pspat_arbiter *arb) {
 
     for(i = 0, n = 0; i < arb->n_queues; i++) {
 	    struct pspat_queue *pq = arb->queues + i;
-	    struct mbuf *mbf;
+	    struct pspat_packet *packet;
 
-	    while ( (mbf = get_client_mbuf(arb, pq)) != NULL) {
-		    m_free(mbf);
+	    while ( (packet = get_client_packet(arb, pq)) != NULL) {
+		    m_free(packet->buf);
+			free(packet, M_PSPAT);
 		    n++;
 	    }
     }
