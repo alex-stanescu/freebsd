@@ -115,6 +115,8 @@ static inline int pspat_mb_insert(struct pspat_mailbox *m, void *v) {
 	/* The location where we will put the value */
 	void **vloc = &m->q[m->prod_write & m->entry_mask];
 
+	printf("inserting %p into mailbox at %lu\n", v, m->prod_write);
+
 	/* If we've reached the end of the reserved line */
 	if (m->prod_write == m->prod_check) {
 		/* Reserve a new cache line to avoid thrashing */
@@ -125,7 +127,7 @@ static inline int pspat_mb_insert(struct pspat_mailbox *m, void *v) {
 
 		m->prod_check += m->entries_per_line;
 		/* Prefetch the next line */
-		__builtin_prefetch((char *)vloc + m->entries_per_line);
+		__builtin_prefetch(vloc + m->entries_per_line);
 	}
 
 	*vloc = v;
@@ -139,7 +141,7 @@ static inline int pspat_mb_insert(struct pspat_mailbox *m, void *v) {
  */
 static inline bool pspat_mb_empty(struct pspat_mailbox *m) {
 	void *v = m->q[m->cons_read & m->entry_mask];
-	return v != NULL;
+	return v == NULL;
 }
 
 /*
@@ -152,6 +154,7 @@ static inline bool pspat_mb_empty(struct pspat_mailbox *m) {
 static inline void *pspat_mb_extract(struct pspat_mailbox *m) {
 	void *v = m->q[m->cons_read & m->entry_mask];
 	if (v != NULL) {
+		printf("Extracting %p from mailbox at %lu\n", v, m->prod_write);
 		m->cons_read ++;
 	}
 
@@ -176,7 +179,7 @@ static inline void pspat_mb_clear(struct pspat_mailbox *m) {
  * @m: The mailbox to run the prefetch on
  */
 static inline void pspat_mb_prefetch(struct pspat_mailbox *m) {
-	__builtin_prefetch((void *)m->q[m->cons_read & m->entry_mask]);
+	__builtin_prefetch(&m->q[m->cons_read & m->entry_mask]);
 }
 
 #endif /* __PSPAT_MAILBOX_H */

@@ -201,7 +201,7 @@ send_ack(struct pspat_queue *pq) {
 static int
 send_to_dispatcher(struct pspat_arbiter *arb, struct pspat_dispatcher *d, struct mbuf *mbf) {
 	int err;
-
+	printf("Sending %p to dispatcher\n", mbf);
 	err = pspat_mb_insert(d->mb, mbf);
 	if (err) {
 		/* Drop this mbf and possible set the backpressure flag for the last client on the queue

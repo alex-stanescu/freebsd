@@ -22,13 +22,13 @@ unsigned long 	pspat_arb_loop_max_ns = 0;
 unsigned long 	pspat_arb_loop_avg_reqs = 0;
 unsigned long 	pspat_mailbox_entries = 512;
 unsigned long 	pspat_mailbox_line_size = 128;
-unsigned long	*pspat_rounds; /* Currently unused */
+unsigned long	*pspat_rounds = NULL; /* Currently unused */
 uint32_t		pspat_arb_batch __read_mostly = 512;
 uint32_t		pspat_dispatch_batch __read_mostly = 256;
 /*
  * Data collection information
  */
-struct pspat_stats     *pspat_stats;
+struct pspat_stats *pspat_stats = NULL;
 
 void *pspat_cpu_names = NULL;
 
@@ -182,13 +182,16 @@ pspat_sysctl_fini(void) {
 	sysctl_ctx_free(&clist);
 	if (pspat_cpu_names != NULL) {
 		free(pspat_cpu_names, M_PSPAT);
+		pspat_cpu_names = NULL;
 	}
 
 	if(pspat_rounds != NULL) {
 		free(pspat_rounds, M_PSPAT);
+		pspat_rounds = NULL;
 	}
 
 	if(pspat_stats != NULL) {
 		free(pspat_stats, M_PSPAT);
+		pspat_stats = NULL;
 	}
 }
