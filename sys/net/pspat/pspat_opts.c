@@ -185,4 +185,8 @@ pspat_sysctl_fini(void) {
 	if(pspat_rounds != NULL) {
 		free(pspat_rounds, M_PSPAT);
 	}
+
+	if(pspat_stats != NULL) {
+		free(pspat_stats, M_PSPAT);
+	}
 }
