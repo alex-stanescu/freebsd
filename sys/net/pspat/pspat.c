@@ -108,8 +108,9 @@ arbiter_worker_func(void *data) {
 				arb_registered = false;
 				printf("PSPAT Arbiter unregistered\n");
 			}
-
+			printf("... Suspending...\n");
 			kthread_suspend(curthread, 0);
+			printf("hello!!!\n");
 		} else {
 			if (!arb_registered) {
 				/* PSPAT is enabled but arbiter is not
@@ -133,7 +134,7 @@ arbiter_worker_func(void *data) {
 			pspat_arbiter_run(&pspat_system->arbiter, &pspat_system->dispatchers[0]);
 		}
 	}
-
+	printf("Arbiter done...\n");
 	kthread_exit();
 }
 
@@ -152,7 +153,6 @@ dispatcher_worker_func(void *data)
 			pspat_dispatcher_run(d);
 		}
 	}
-
 	kthread_exit();
 }
 
@@ -183,6 +183,10 @@ pspat_create(void)
 	}
 
 	pspat_ptr->arbiter.n_queues = cpus;
+	// No client has a valid mailbox yet!
+	for (unsigned int i = 0; i < cpus; i++) {
+		pspat_ptr->arbiter.queues[i].cli_last_mb = -1;
+	}
 
 	/* Initialize all mailboxes */
 	m = (struct pspat_mailbox *)((char *)pspat_ptr + pspat_size);
@@ -307,6 +311,7 @@ pspat_destroy(void)
 static void
 pspat_fini(void)
 {
+	printf("Fini\n");
 	pspat_destroy();
 	pspat_sysctl_fini();
 	rw_destroy(&pspat_rwlock);
