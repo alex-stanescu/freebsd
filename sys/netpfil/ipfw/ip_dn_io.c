@@ -91,6 +91,8 @@ static long tick_diff;
 static unsigned long	io_pkt;
 static unsigned long	io_pkt_fast;
 
+int (*dummynet_custom_dispatch)(struct mbuf *, struct ip_fw_args *);
+
 #ifdef NEW_AQM
 unsigned long	io_pkt_drop;
 #else
@@ -881,8 +883,8 @@ dummynet_io(struct mbuf **m0, struct ip_fw_args *fwa)
 	if (tag_mbuf(m, dir, fwa))
 		goto dropit;
 
-    if (pspat_enable && (dir == DIR_OUT)) {
-        return pspat_client_handler(m, fwa);
+    if (dummynet_custom_dispatch && dir == DIR_OUT) {
+        return dummynet_custom_dispatch(m, fwa);
     }
 
     DN_BH_WLOCK();

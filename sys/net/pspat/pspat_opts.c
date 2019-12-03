@@ -4,6 +4,7 @@
 
 #include <sys/kthread.h>
 #include <sys/smp.h>
+#include <netpfil/ipfw/ip_dn_io.h>
 
 /*
  * Settings for the PSPAT subsystem
@@ -59,6 +60,7 @@ pspat_enable_oid_handler(struct sysctl_oid *oidp, void *arg1, intmax_t arg2, str
 	kthread_resume(pspat->arb_thread);
 	kthread_resume(pspat->dispatcher_thread);
 	printf("Resumed!\n");
+	dummynet_custom_dispatch = pspat_client_handler;
 	return 0;
 }
 

@@ -34,7 +34,7 @@
 #define _IP_DN_IO_H_
 
 extern struct dn_parms dn_cfg;
-
+extern int (*dummynet_custom_dispatch)(struct mbuf *, struct ip_fw_args *);
 void dummynet_send(struct mbuf *);
 
 #endif
