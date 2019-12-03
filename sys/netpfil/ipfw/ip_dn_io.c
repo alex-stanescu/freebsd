@@ -879,12 +879,17 @@ dummynet_io(struct mbuf **m0, struct ip_fw_args *fwa)
 	else if (fwa->flags & IPFW_ARGS_IP6)
 		dir |= PROTO_IPV6;
 	io_pkt++;
-	/* we could actually tag outside the lock, but who cares... */
+
 	if (tag_mbuf(m, dir, fwa))
-		goto dropit;
+		goto freeit;
 
     if (dummynet_custom_dispatch && dir == DIR_OUT) {
-        return dummynet_custom_dispatch(m, fwa);
+        int ret = dummynet_custom_dispatch(m, fwa);
+		if (ret)
+			return ret;
+
+		*m0 = NULL;
+		return 0;
     }
 
     DN_BH_WLOCK();
@@ -977,6 +982,7 @@ done:
 dropit:
 	io_pkt_drop++;
 	DN_BH_WUNLOCK();
+freeit:
 	if (m)
 		FREE_PKT(m);
 	*m0 = NULL;
