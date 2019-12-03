@@ -102,8 +102,8 @@ arbiter_worker_func(void *data) {
 				pspat_arbiter_shutdown(&pspat_system->arbiter);
 				rw_wlock(&pspat_rwlock);
 				pspat = NULL;
-				mtx_unlock(&pspat_glock);
 				rw_wunlock(&pspat_rwlock);
+				mtx_unlock(&pspat_glock);
 
 				arb_registered = false;
 				printf("PSPAT Arbiter unregistered\n");

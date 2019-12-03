@@ -91,6 +91,7 @@ pspat_sysctl_init(void)
 
 	size = (cpus + 1) * sizeof(unsigned long);
 	pspat_rounds = malloc(size, M_PSPAT, M_WAITOK | M_ZERO);
+	pspat_stats = malloc(cpus * sizeof(pspat_stats), M_PSPAT, M_WAITOK | M_ZERO);
 
 	if(pspat_rounds == NULL) {
 		printf("PSPAT is unable to allocate rounds counter array\n");
@@ -163,7 +164,7 @@ pspat_sysctl_init(void)
 
 	for(i = 0; i < cpus; i++) {
 		n = snprintf(name, 16, "inq-drop-%d", i);
-
+		pspat_stats[i].inq_drop = 0;
 		t = SYSCTL_ADD_U64(&clist, SYSCTL_CHILDREN(pspat_cpu_oid), OID_AUTO, name, CTLFLAG_RW,
 				   &pspat_stats[i].inq_drop, 0, name);
 
