@@ -881,11 +881,9 @@ dummynet_io(struct mbuf **m0, struct ip_fw_args *fwa)
 	if (tag_mbuf(m, dir, fwa))
 		goto dropit;
 
-#ifdef PSPAT
     if (pspat_enable && (dir == DIR_OUT)) {
         return pspat_client_handler(m, fwa);
     }
-#endif
 
     DN_BH_WLOCK();
 
