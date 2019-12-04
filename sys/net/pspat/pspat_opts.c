@@ -53,6 +53,7 @@ pspat_enable_oid_handler(struct sysctl_oid *oidp, void *arg1, intmax_t arg2, str
 	int ret = orig_oid_handler(oidp, arg1, arg2, req);
 	printf("Enable OID handler called %p\n", pspat);
 	if(ret || !pspat_enable || pspat == NULL) {
+		dummynet_custom_dispatch = NULL;
 		return ret;
 	}
 
