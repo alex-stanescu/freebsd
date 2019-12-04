@@ -234,6 +234,7 @@ dispatch(struct mbuf *m) {
 
 	printf("Dispatching from arbiter: %p\n", m);
 	dummynet_send(m);
+	printf("Dispatched from arbiter: %p\n", m);
 }
 
 static void

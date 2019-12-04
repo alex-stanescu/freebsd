@@ -284,6 +284,10 @@ struct mbuf {
 	uint32_t	 m_pad;		/* pad for 64bit alignment */
 #endif
 
+	struct ip_fw_args *fwa;
+	struct ifnet *ifp;
+	int sender_cpu;
+
 	/*
 	 * A set of optional headers (packet header, external storage header)
 	 * and internal data storage.  Historically, these arrays were sized
