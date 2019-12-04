@@ -8,7 +8,7 @@
 #include <sys/queue.h>
 
 #define PSPAT_MB_NAMSZ	32
-#define PSPAT_MB_DEBUG	false
+// #define PSPAT_MB_DEBUG
 
 MALLOC_DECLARE(M_MB);
 

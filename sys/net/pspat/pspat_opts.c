@@ -51,16 +51,13 @@ static int pspat_xmit_mode_oid_handler(struct sysctl_oid *oidp, void *arg1, intm
 static int
 pspat_enable_oid_handler(struct sysctl_oid *oidp, void *arg1, intmax_t arg2, struct sysctl_req *req) {
 	int ret = orig_oid_handler(oidp, arg1, arg2, req);
-	printf("Enable OID handler called %p\n", pspat);
 	if(ret || !pspat_enable || pspat == NULL) {
 		dummynet_custom_dispatch = NULL;
 		return ret;
 	}
 
-	printf("Resuming kthreads\n");
 	kthread_resume(pspat->arb_thread);
-	kthread_resume(pspat->dispatcher_thread);
-	printf("Resumed!\n");
+	kthread_resume(pspat->dispatchers[0].dispatcher_thread);
 	dummynet_custom_dispatch = pspat_client_handler;
 	return 0;
 }
@@ -73,9 +70,7 @@ pspat_xmit_mode_oid_handler(struct sysctl_oid *oidp, void *arg1, intmax_t arg2, 
 		return ret;
 	}
 
-	printf("Resuming kthreads\n");
-	kthread_resume(pspat->dispatcher_thread);
-	printf("Resumed!\n");
+	kthread_resume(pspat->dispatchers[0].dispatcher_thread);
 	return 0;
 }
 

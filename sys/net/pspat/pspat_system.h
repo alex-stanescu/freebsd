@@ -13,7 +13,6 @@
 /* PSPAT overall data structure */
 struct pspat_system {
 	struct thread	    *arb_thread;	/* The thread that the arbiter is running on */
-	struct thread	    *dispatcher_thread;	/* The thread that is actually dispatching */
 
 	/* Used with PSPAT_XMIT_MODE_DISPATCH */
 	struct pspat_dispatcher dispatchers[1];

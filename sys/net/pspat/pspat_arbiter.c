@@ -226,6 +226,8 @@ send_to_dispatcher(struct pspat_arbiter *arb, struct pspat_dispatcher *d, struct
 		pspat_arb_dispatch_drop ++;
 		m_free(packet->buf);
 		free(packet, M_PSPAT);
+	} else {
+		kthread_resume(d->dispatcher_thread);
 	}
 
 	return err;

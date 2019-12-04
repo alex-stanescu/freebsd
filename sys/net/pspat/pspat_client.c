@@ -88,6 +88,9 @@ pspat_enq_packet(struct pspat_queue *pq, struct pspat_packet *p) {
 
 int
 pspat_client_handler(struct mbuf *mbf, struct ip_fw_args *fwa) {
+	if (pspat_debug_xmit) {
+		printf("Client Handler received buf! %p\n", mbf);
+	}
 	static struct mbuf *ins_mbf;
 	/* Avoid duplicate intake of the same packet */
 	if (mbf == ins_mbf) {

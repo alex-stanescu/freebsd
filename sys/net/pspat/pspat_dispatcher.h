@@ -7,6 +7,7 @@
 
 struct pspat_dispatcher {
 	struct pspat_mailbox  *mb;
+	struct thread	    *dispatcher_thread;	/* The thread that is actually dispatching */
 };
 
 /*

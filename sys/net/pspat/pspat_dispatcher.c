@@ -44,7 +44,6 @@ int pspat_dispatcher_run(struct pspat_dispatcher *d) {
 	if(pspat_debug_xmit && ndeq) {
 		printf("PSPAT Sender processed %d mbfs\n", ndeq);
 	}
-	//printf("Dispatcher run complete %d\n", ndeq);
 
 	return ndeq;
 }

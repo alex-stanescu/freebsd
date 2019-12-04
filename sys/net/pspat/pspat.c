@@ -142,6 +142,7 @@ static void
 dispatcher_worker_func(void *data)
 {
 	struct pspat_dispatcher *d = (struct pspat_dispatcher *)data;
+	printf("Dispatcher started up on thread %d\n", curthread->td_tid);
 
 	while(!dispatcher_thread_stop) {
 		if (pspat_xmit_mode != PSPAT_XMIT_MODE_DISPATCH || !pspat_enable) {
@@ -151,6 +152,9 @@ dispatcher_worker_func(void *data)
 			printf("PSPAT Dispatcher activated!\n");
 		} else {
 			pspat_dispatcher_run(d);
+			if(pspat_mb_empty(d->mb)) {
+				kthread_suspend(curthread, 0);
+			}
 		}
 	}
 	kthread_exit();
@@ -234,7 +238,7 @@ pspat_create(void)
 		goto free_pspat;
 	}
 
-	ret = kthread_add(dispatcher_worker_func, &pspat_ptr->dispatchers[0], NULL, &pspat_ptr->dispatcher_thread, 0, 0, "PSPAT_dispatcher_thread");
+	ret = kthread_add(dispatcher_worker_func, &pspat_ptr->dispatchers[0], NULL, &pspat_ptr->dispatchers[0].dispatcher_thread, 0, 0, "PSPAT_dispatcher_thread");
 	if (ret) {
 		goto stop_arbiter;
 	}
@@ -292,9 +296,9 @@ pspat_destroy(void)
 		pspat_ptr->arb_thread = NULL;
 	}
 
-	if (pspat_ptr->dispatcher_thread != NULL) {
+	if (pspat_ptr->dispatchers[0].dispatcher_thread != NULL) {
 		dispatcher_thread_stop = true;
-		pspat_ptr->dispatcher_thread = NULL;
+		pspat_ptr->dispatchers[0].dispatcher_thread = NULL;
 	}
 
 	pspat_dispatcher_shutdown(&pspat_ptr->dispatchers[0]);
