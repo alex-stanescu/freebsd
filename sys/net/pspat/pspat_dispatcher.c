@@ -20,12 +20,11 @@ MALLOC_DECLARE(M_PSPAT);
 static void
 dispatch(struct pspat_packet *packet) {
 	struct mbuf *m = packet->buf;
-	printf("Current vnet: %p\n", curthread->td_vnet);
-	printf("Packet vnet: %p\n", packet->vnet);
 	curthread->td_vnet = packet->vnet;
-	printf("Dispatching from dispatcher: %p\n", m);
+	if (pspat_debug_xmit) {
+		printf("Dispatching from dispatcher: %p\n", m);
+	}
 	dummynet_send(m);
-	printf("Dispatched from dispatcher: %p\n", m);
 	free(packet, M_PSPAT);
 }
 
@@ -34,13 +33,11 @@ int pspat_dispatcher_run(struct pspat_dispatcher *d) {
 	struct pspat_mailbox *m = d->mb;
 	struct pspat_packet *packet = NULL;
 	int ndeq = 0;
-	//printf("Running dispatcher\n");
 	while (ndeq < pspat_dispatch_batch && ((packet = pspat_mb_extract(m)) != NULL)) {
 		dispatch(packet);
 		ndeq ++;
 	}
 
-	//printf("Clearing mailbox: %p\n", m);
 	pspat_dispatch_deq += ndeq;
 	pspat_mb_clear(m);
 

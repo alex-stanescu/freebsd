@@ -141,7 +141,7 @@ get_client_mb(struct pspat_queue *pq) {
 		    }
 
 		    pq->arb_last_mb = m;
-		    /* Wait for previous updates in the new mailbox. TODO What? */
+		    /* Wait for previous updates in the new mailbox. */
 		    mb();
 	    }
 
@@ -207,7 +207,9 @@ send_ack(struct pspat_queue *pq) {
 static int
 send_to_dispatcher(struct pspat_arbiter *arb, struct pspat_dispatcher *d, struct pspat_packet *packet) {
 	int err;
-	printf("Sending %p to dispatcher\n", packet);
+	if (pspat_debug_xmit) {
+		printf("Sending %p to dispatcher\n", packet);
+	}
 	err = pspat_mb_insert(d->mb, packet);
 	if (err) {
 		/* Drop this mbf and possible set the backpressure flag for the last client on the queue
@@ -232,12 +234,11 @@ send_to_dispatcher(struct pspat_arbiter *arb, struct pspat_dispatcher *d, struct
 static void
 dispatch(struct pspat_packet *packet) {
 	struct mbuf *m = packet->buf;
-	printf("Current vnet: %p\n", curthread->td_vnet);
-	printf("Packet vnet: %p\n", packet->vnet);
 	curthread->td_vnet = packet->vnet;
-	printf("Dispatching from arbiter: %p\n", m);
+	if (pspat_debug_xmit) {
+		printf("Dispatching from arbiter: %p\n", m);
+	}
 	dummynet_send(m);
-	printf("Dispatched from arbiter: %p\n", m);
 	free(packet, M_PSPAT);
 }
 

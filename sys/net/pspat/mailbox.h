@@ -8,7 +8,7 @@
 #include <sys/queue.h>
 
 #define PSPAT_MB_NAMSZ	32
-#define PSPAT_MB_DEBUG	true
+#define PSPAT_MB_DEBUG	false
 
 MALLOC_DECLARE(M_MB);
 
@@ -115,8 +115,6 @@ static inline int pspat_mb_insert(struct pspat_mailbox *m, void *v) {
 	/* The location where we will put the value */
 	void **vloc = &m->q[m->prod_write & m->entry_mask];
 
-	printf("inserting %p into mailbox at %lu\n", v, m->prod_write);
-
 	/* If we've reached the end of the reserved line */
 	if (m->prod_write == m->prod_check) {
 		/* Reserve a new cache line to avoid thrashing */
@@ -154,7 +152,6 @@ static inline bool pspat_mb_empty(struct pspat_mailbox *m) {
 static inline void *pspat_mb_extract(struct pspat_mailbox *m) {
 	void *v = m->q[m->cons_read & m->entry_mask];
 	if (v != NULL) {
-		printf("Extracting %p from mailbox at %lu\n", v, m->cons_read);
 		m->cons_read ++;
 	}
 

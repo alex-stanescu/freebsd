@@ -45,7 +45,9 @@ static unsigned int mb_next_id = 0;
  */
 static int
 pspat_enq_packet(struct pspat_queue *pq, struct pspat_packet *p) {
-	printf("Enqueueing %p into queue %p\n", p, pq);
+	if (pspat_debug_xmit) {
+		printf("Enqueueing %p into queue %p\n", p, pq);
+	}
     struct pspat_mailbox *m;
     int err;
 
@@ -59,7 +61,6 @@ pspat_enq_packet(struct pspat_queue *pq, struct pspat_packet *p) {
     }
 
     m = curthread->pspat_mb;
-	printf("Using %p as the mailbox!\n", m);
 
     if (m->backpressure) {
 	    m->backpressure = 0;
@@ -87,11 +88,12 @@ pspat_enq_packet(struct pspat_queue *pq, struct pspat_packet *p) {
 
 int
 pspat_client_handler(struct mbuf *mbf, struct ip_fw_args *fwa) {
-    printf("=====SENDING BUF=====\n");
 	static struct mbuf *ins_mbf;
 	/* Avoid duplicate intake of the same packet */
 	if (mbf == ins_mbf) {
-		printf("Duplicated intake of the same packet! %p\n", ins_mbf);
+		if (pspat_debug_xmit) {
+			printf("Duplicated intake of the same packet! %p\n", ins_mbf);
+		}
 		return -ENOTTY;
 	} else {
 		ins_mbf = mbf;
@@ -108,7 +110,9 @@ pspat_client_handler(struct mbuf *mbf, struct ip_fw_args *fwa) {
 	rw_unlock(&pspat_rwlock);
 
 	if (!pspat_enable || arb == NULL) {
-		printf("Either PSPAT is not enabled or we don't know the arbiter - (%d, %p respectively)\n", pspat_enable, arb);
+		if (pspat_debug_xmit) {
+			printf("Either PSPAT is not enabled or we don't know the arbiter - (%d, %p respectively)\n", pspat_enable, arb);
+		}
 		/* Not our business */
 		return -ENOTTY;
 	}
