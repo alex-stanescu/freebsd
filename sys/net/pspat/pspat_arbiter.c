@@ -68,7 +68,7 @@ static void send_ack(struct pspat_queue *pq);
  * @d the dispatcher we are sending to
  * @mbf the buffer we are dispatching
  */
-static int send_to_dispatcher(struct pspat_arbiter *arb, struct pspat_dispatcher *d, struct mbuf *mbf);
+static int send_to_dispatcher(struct pspat_arbiter *arb, struct pspat_dispatcher *d, struct pspat_packet *packet);
 
 /*
  * Dispatch a mbuf ourselves
@@ -202,24 +202,24 @@ send_ack(struct pspat_queue *pq) {
 }
 
 static int
-send_to_dispatcher(struct pspat_arbiter *arb, struct pspat_dispatcher *d, struct mbuf *mbf) {
+send_to_dispatcher(struct pspat_arbiter *arb, struct pspat_dispatcher *d, struct pspat_packet *packet) {
 	int err;
-	printf("Sending %p to dispatcher\n", mbf);
-	err = pspat_mb_insert(d->mb, mbf);
+	printf("Sending %p to dispatcher\n", packet);
+	err = pspat_mb_insert(d->mb, packet->buf);
 	if (err) {
 		/* Drop this mbf and possible set the backpressure flag for the last client on the queue
 		 * where this mbf was transmitted */
 		struct pspat_mailbox *cli_mb;
 		struct pspat_queue *pq;
 
-		pq = arb->queues + mbf->sender_cpu - 1;
+		pq = arb->queues + packet->sender_cpu - 1;
 		cli_mb = pq->arb_last_mb;
 
 		if (cli_mb != NULL && cli_mb->backpressure) {
 			cli_mb->backpressure = 1;
 		}
 		pspat_arb_dispatch_drop ++;
-		m_free(mbf);
+		m_free(packet->buf);
 	}
 
 	return err;
@@ -302,9 +302,8 @@ int pspat_arbiter_run(struct pspat_arbiter *arb, struct pspat_dispatcher *dispat
 			 * sending a packet from the arbiter to the dispatcher queue
 			 * directly. */
 
-			struct mbuf *buf = packet->buf;
+			send_to_dispatcher(arb, dispatcher, packet);
 			free(packet, M_PSPAT);
-			send_to_dispatcher(arb, dispatcher, buf);
 
 			/* Enqueue to SA here */
 			//			if (first_packet) {
