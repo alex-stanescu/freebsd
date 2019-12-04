@@ -12,6 +12,7 @@ struct pspat_packet {
 	struct ifnet 		*ifp;
 	int 				sender_cpu;
 	struct mbuf			*buf;
+	struct vnet			*vnet;
 };
 
 /* Per-CPU queue */

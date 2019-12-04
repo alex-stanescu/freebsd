@@ -5,32 +5,38 @@
 #include "pspat_dispatcher.h"
 #include "mailbox.h"
 #include "pspat_opts.h"
+#include "pspat_arbiter.h"
 
 #include <sys/types.h>
 #include <sys/mbuf.h>
+#include <sys/proc.h>
 #include <netpfil/ipfw/ip_dn_io.h>
+MALLOC_DECLARE(M_PSPAT);
 
 /*
  * Dispatches a mbuf
  */
-static void dispatch(struct mbuf *m) {
-	/* NOTE : Calling the below function is technically supposed to work
-	 * properly but due to some unresolved issue (potential thread conflict)
-	 * it doesn't. Hence it may be preferred to use printfs and comment
-	 * out the following statement to test the rest of the code well */
 
-	//dummynet_send(m);
+static void
+dispatch(struct pspat_packet *packet) {
+	struct mbuf *m = packet->buf;
+	printf("Current vnet: %p\n", curthread->td_vnet);
+	printf("Packet vnet: %p\n", packet->vnet);
+	curthread->td_vnet = packet->vnet;
 	printf("Dispatching from dispatcher: %p\n", m);
+	dummynet_send(m);
+	printf("Dispatched from dispatcher: %p\n", m);
+	free(packet, M_PSPAT);
 }
 
 
 int pspat_dispatcher_run(struct pspat_dispatcher *d) {
 	struct pspat_mailbox *m = d->mb;
-	struct mbuf *mbf = NULL;
+	struct pspat_packet *packet = NULL;
 	int ndeq = 0;
 	//printf("Running dispatcher\n");
-	while (ndeq < pspat_dispatch_batch && ((mbf = pspat_mb_extract(m)) != NULL)) {
-		dispatch(mbf);
+	while (ndeq < pspat_dispatch_batch && ((packet = pspat_mb_extract(m)) != NULL)) {
+		dispatch(packet);
 		ndeq ++;
 	}
 
@@ -50,12 +56,13 @@ int pspat_dispatcher_run(struct pspat_dispatcher *d) {
  * Shuts down the dispatcher
  */
 void pspat_dispatcher_shutdown(struct pspat_dispatcher *d) {
-	struct mbuf *mbf;
+	struct pspat_packet *packet;
 	int n = 0;
 
 	/* Drain the sender mailbox. */
-	while ( (mbf = pspat_mb_extract(d->mb)) != NULL ) {
-		m_free(mbf);
+	while ( (packet = pspat_mb_extract(d->mb)) != NULL ) {
+		m_free(packet->buf);
+		free(packet, M_PSPAT);
 		n ++;
 	}
 	printf("%s: Sender MB drained, found %d mbfs\n", __func__, n);

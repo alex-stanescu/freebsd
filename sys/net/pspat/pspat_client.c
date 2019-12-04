@@ -19,6 +19,7 @@
 #include <net/if_var.h>
 #include <net/if_types.h>
 #include <net/ethernet.h>
+#include <net/vnet.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/ip_var.h>
@@ -118,6 +119,7 @@ pspat_client_handler(struct mbuf *mbf, struct ip_fw_args *fwa) {
 	p->fwa = fwa;
 	p->ifp = fwa->oif;
 	p->buf= mbf;
+	p->vnet = curthread->td_vnet;
 
 	pq = arb->queues + cpu;
 	if (pspat_enq_packet(pq, p)) {

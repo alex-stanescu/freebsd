@@ -7,7 +7,9 @@
 #include "pspat_opts.h"
 
 #include <machine/atomic.h>
+#include <net/vnet.h>
 #include <sys/mbuf.h>
+#include <sys/proc.h>
 #include <netpfil/ipfw/ip_dn_io.h>
 
 MALLOC_DECLARE(M_PSPAT);
@@ -75,7 +77,7 @@ static int send_to_dispatcher(struct pspat_arbiter *arb, struct pspat_dispatcher
  *
  * @m the mbuf to dispatch
  */
-static void dispatch(struct mbuf *m);
+static void dispatch(struct pspat_packet *packet);
 
 /*
  * Drains the given client queue to relieve backpressure
@@ -205,7 +207,7 @@ static int
 send_to_dispatcher(struct pspat_arbiter *arb, struct pspat_dispatcher *d, struct pspat_packet *packet) {
 	int err;
 	printf("Sending %p to dispatcher\n", packet);
-	err = pspat_mb_insert(d->mb, packet->buf);
+	err = pspat_mb_insert(d->mb, packet);
 	if (err) {
 		/* Drop this mbf and possible set the backpressure flag for the last client on the queue
 		 * where this mbf was transmitted */
@@ -220,21 +222,22 @@ send_to_dispatcher(struct pspat_arbiter *arb, struct pspat_dispatcher *d, struct
 		}
 		pspat_arb_dispatch_drop ++;
 		m_free(packet->buf);
+		free(packet, M_PSPAT);
 	}
 
 	return err;
 }
 
 static void
-dispatch(struct mbuf *m) {
-	/* NOTE : Calling the below function is technically supposed to work
-	 * properly but due to some unresolved issue (potential thread conflict)
-	 * it doesn't. Hence it may be preferred to use printfs and comment
-	 * out the following statement to test the rest of the code well */
-
+dispatch(struct pspat_packet *packet) {
+	struct mbuf *m = packet->buf;
+	printf("Current vnet: %p\n", curthread->td_vnet);
+	printf("Packet vnet: %p\n", packet->vnet);
+	curthread->td_vnet = packet->vnet;
 	printf("Dispatching from arbiter: %p\n", m);
 	dummynet_send(m);
 	printf("Dispatched from arbiter: %p\n", m);
+	free(packet, M_PSPAT);
 }
 
 static void
@@ -303,7 +306,6 @@ int pspat_arbiter_run(struct pspat_arbiter *arb, struct pspat_dispatcher *dispat
 			 * directly. */
 
 			send_to_dispatcher(arb, dispatcher, packet);
-			free(packet, M_PSPAT);
 
 			/* Enqueue to SA here */
 			//			if (first_packet) {
@@ -363,12 +365,12 @@ int pspat_arbiter_run(struct pspat_arbiter *arb, struct pspat_dispatcher *dispat
 		unsigned int ndeq = 0;
 
 		struct pspat_mailbox *m = dispatcher->mb;
-		struct mbuf *mbuf;
+		struct pspat_packet *packet;
 
 		while (link_idle < now && ndeq < pspat_arb_batch) {
-			if ((mbuf = pspat_mb_extract(m)) != NULL) {
-				link_idle += picos_per_byte * mbuf->m_len;
-				dispatch(mbuf);
+			if ((packet = pspat_mb_extract(m)) != NULL) {
+				link_idle += picos_per_byte * packet->buf->m_len;
+				dispatch(packet);
 				ndeq ++;
 			} else {
 				link_idle = now;
