@@ -166,8 +166,9 @@ retry:
 	packet = pspat_mb_extract(m);
 	if(packet != NULL) {
 		/* Let send_ack() see this mailbox */
-		entry_init(&m->entry);
-		TAILQ_INSERT_TAIL(&pq->mb_to_clear, &m->entry, entries);
+		if (ENTRY_EMPTY(m->entry)) {
+			TAILQ_INSERT_TAIL(&pq->mb_to_clear, &m->entry, entries);
+		}
 	} else if (m->dead) {
 		/* Potentially remove this mailbox from the ack list */
 		if (!ENTRY_EMPTY(m->entry)) {
@@ -198,7 +199,7 @@ send_ack(struct pspat_queue *pq) {
 		mb = (struct pspat_mailbox *) mb_entry->mb;
 
 		TAILQ_REMOVE(&pq->mb_to_clear, mb_entry, entries);
-		entry_init(&mb->entry);
+		entry_init(mb_entry);
 		pspat_mb_clear(mb);
 	}
 }
